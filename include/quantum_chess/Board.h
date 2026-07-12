@@ -13,6 +13,16 @@ public:
     void reset();
     std::string toString() const;
 
+    const Piece& at(int row, int column) const;
+    Piece& at(int row, int column);
+
+    bool movePiece(
+        int sourceRow,
+        int sourceColumn,
+        int destinationRow,
+        int destinationColumn
+    );
+
 private:
     std::array<std::array<Piece, 8>, 8> squares_{};
 

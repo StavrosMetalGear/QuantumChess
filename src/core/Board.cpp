@@ -35,6 +35,33 @@ void Board::reset() {
     }
 }
 
+const Piece& Board::at(int row, int column) const {
+    return squares_[row][column];
+}
+
+Piece& Board::at(int row, int column) {
+    return squares_[row][column];
+}
+
+bool Board::movePiece(
+    int sourceRow,
+    int sourceColumn,
+    int destinationRow,
+    int destinationColumn
+) {
+    Piece& source = squares_[sourceRow][sourceColumn];
+    Piece& destination = squares_[destinationRow][destinationColumn];
+
+    if (source.type == PieceType::None) {
+        return false;
+    }
+
+    destination = source;
+    source = {};
+
+    return true;
+}
+
 char Board::pieceToChar(const Piece& piece) {
     char symbol = '.';
 
