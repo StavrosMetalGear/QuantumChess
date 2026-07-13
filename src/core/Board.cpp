@@ -1,5 +1,6 @@
 #include "quantum_chess/Board.h"
 
+#include <cstdlib>
 #include <sstream>
 
 namespace quantum_chess {
@@ -58,6 +59,37 @@ bool Board::movePiece(
 
     destination = source;
     source = {};
+
+    return true;
+}
+
+bool Board::isPathClear(
+    int sourceRow,
+    int sourceColumn,
+    int destinationRow,
+    int destinationColumn
+) const {
+    const int rowDirection =
+        destinationRow == sourceRow
+            ? 0
+            : (destinationRow > sourceRow ? 1 : -1);
+
+    const int columnDirection =
+        destinationColumn == sourceColumn
+            ? 0
+            : (destinationColumn > sourceColumn ? 1 : -1);
+
+    int row = sourceRow + rowDirection;
+    int column = sourceColumn + columnDirection;
+
+    while (row != destinationRow || column != destinationColumn) {
+        if (squares_[row][column].type != PieceType::None) {
+            return false;
+        }
+
+        row += rowDirection;
+        column += columnDirection;
+    }
 
     return true;
 }

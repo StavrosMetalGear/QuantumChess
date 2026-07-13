@@ -2,6 +2,7 @@
 
 #include <array>
 #include <string>
+
 #include "quantum_chess/Piece.h"
 
 namespace quantum_chess {
@@ -22,6 +23,13 @@ public:
         int destinationRow,
         int destinationColumn
     );
+
+    bool isPathClear(
+        int sourceRow,
+        int sourceColumn,
+        int destinationRow,
+        int destinationColumn
+    ) const;
 
 private:
     std::array<std::array<Piece, 8>, 8> squares_{};

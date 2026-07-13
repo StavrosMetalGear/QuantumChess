@@ -1,6 +1,7 @@
 #include "quantum_chess/Game.h"
 
 #include <cctype>
+#include <cstdlib>
 
 namespace quantum_chess {
 
@@ -26,6 +27,7 @@ bool Game::parseSquare(
     const char file = static_cast<char>(
         std::tolower(static_cast<unsigned char>(square[0]))
     );
+
     const char rank = square[1];
 
     if (file < 'a' || file > 'h' || rank < '1' || rank > '8') {
@@ -79,6 +81,15 @@ bool Game::makeMove(
         return false;
     }
 
+    if (!isLegalMove(
+            sourceRow,
+            sourceColumn,
+            destinationRow,
+            destinationColumn,
+            errorMessage)) {
+        return false;
+    }
+
     board_.movePiece(
         sourceRow,
         sourceColumn,
@@ -90,6 +101,95 @@ bool Game::makeMove(
     errorMessage.clear();
 
     return true;
+}
+
+bool Game::isLegalMove(
+    int sourceRow,
+    int sourceColumn,
+    int destinationRow,
+    int destinationColumn,
+    std::string& errorMessage
+) const {
+    const Piece& piece = board_.at(sourceRow, sourceColumn);
+
+    if (piece.type == PieceType::Pawn) {
+        return isLegalPawnMove(
+            sourceRow,
+            sourceColumn,
+            destinationRow,
+            destinationColumn,
+            errorMessage
+        );
+    }
+
+    return true;
+}
+
+bool Game::isLegalPawnMove(
+    int sourceRow,
+    int sourceColumn,
+    int destinationRow,
+    int destinationColumn,
+    std::string& errorMessage
+) const {
+    const Piece& pawn = board_.at(sourceRow, sourceColumn);
+    const Piece& destination =
+        board_.at(destinationRow, destinationColumn);
+
+    const int direction =
+        pawn.color == PieceColor::White ? -1 : 1;
+
+    const int startingRow =
+        pawn.color == PieceColor::White ? 6 : 1;
+
+    const int rowDifference = destinationRow - sourceRow;
+    const int columnDifference =
+        destinationColumn - sourceColumn;
+
+    if (columnDifference == 0) {
+        if (destination.type != PieceType::None) {
+            errorMessage = "A pawn cannot move forward into an occupied square.";
+            return false;
+        }
+
+        if (rowDifference == direction) {
+            return true;
+        }
+
+        if (sourceRow == startingRow &&
+            rowDifference == 2 * direction) {
+            const int middleRow = sourceRow + direction;
+
+            if (board_.at(middleRow, sourceColumn).type ==
+                PieceType::None) {
+                return true;
+            }
+
+            errorMessage = "The pawn is blocked.";
+            return false;
+        }
+
+        errorMessage = "Illegal pawn movement.";
+        return false;
+    }
+
+    if (std::abs(columnDifference) == 1 &&
+        rowDifference == direction) {
+        if (destination.type == PieceType::None) {
+            errorMessage = "A pawn can move diagonally only when capturing.";
+            return false;
+        }
+
+        if (destination.color == pawn.color) {
+            errorMessage = "A pawn cannot capture its own piece.";
+            return false;
+        }
+
+        return true;
+    }
+
+    errorMessage = "Illegal pawn movement.";
+    return false;
 }
 
 void Game::switchTurn() {

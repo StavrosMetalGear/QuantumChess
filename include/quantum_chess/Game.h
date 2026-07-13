@@ -1,6 +1,7 @@
 #pragma once
 
 #include <string>
+
 #include "quantum_chess/Board.h"
 
 namespace quantum_chess {
@@ -27,6 +28,22 @@ private:
         int& row,
         int& column
     );
+
+    bool isLegalMove(
+        int sourceRow,
+        int sourceColumn,
+        int destinationRow,
+        int destinationColumn,
+        std::string& errorMessage
+    ) const;
+
+    bool isLegalPawnMove(
+        int sourceRow,
+        int sourceColumn,
+        int destinationRow,
+        int destinationColumn,
+        std::string& errorMessage
+    ) const;
 
     void switchTurn();
 };
