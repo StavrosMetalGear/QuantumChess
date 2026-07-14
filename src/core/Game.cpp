@@ -112,17 +112,110 @@ bool Game::isLegalMove(
 ) const {
     const Piece& piece = board_.at(sourceRow, sourceColumn);
 
-    if (piece.type == PieceType::Pawn) {
-        return isLegalPawnMove(
-            sourceRow,
-            sourceColumn,
-            destinationRow,
-            destinationColumn,
-            errorMessage
-        );
+    const int rowDifference =
+        destinationRow - sourceRow;
+
+    const int columnDifference =
+        destinationColumn - sourceColumn;
+
+    const int absoluteRowDifference =
+        std::abs(rowDifference);
+
+    const int absoluteColumnDifference =
+        std::abs(columnDifference);
+
+    switch (piece.type) {
+        case PieceType::Pawn:
+            return isLegalPawnMove(
+                sourceRow,
+                sourceColumn,
+                destinationRow,
+                destinationColumn,
+                errorMessage
+            );
+
+        case PieceType::Knight:
+            if ((absoluteRowDifference == 2 &&
+                 absoluteColumnDifference == 1) ||
+                (absoluteRowDifference == 1 &&
+                 absoluteColumnDifference == 2)) {
+                return true;
+            }
+
+            errorMessage = "A knight must move in an L shape.";
+            return false;
+
+        case PieceType::Bishop:
+            if (absoluteRowDifference != absoluteColumnDifference) {
+                errorMessage = "A bishop must move diagonally.";
+                return false;
+            }
+
+            if (!board_.isPathClear(
+                    sourceRow,
+                    sourceColumn,
+                    destinationRow,
+                    destinationColumn)) {
+                errorMessage = "The bishop's path is blocked.";
+                return false;
+            }
+
+            return true;
+
+        case PieceType::Rook:
+            if (rowDifference != 0 && columnDifference != 0) {
+                errorMessage =
+                    "A rook must move horizontally or vertically.";
+                return false;
+            }
+
+            if (!board_.isPathClear(
+                    sourceRow,
+                    sourceColumn,
+                    destinationRow,
+                    destinationColumn)) {
+                errorMessage = "The rook's path is blocked.";
+                return false;
+            }
+
+            return true;
+
+        case PieceType::Queen:
+            if (rowDifference != 0 &&
+                columnDifference != 0 &&
+                absoluteRowDifference != absoluteColumnDifference) {
+                errorMessage =
+                    "A queen must move straight or diagonally.";
+                return false;
+            }
+
+            if (!board_.isPathClear(
+                    sourceRow,
+                    sourceColumn,
+                    destinationRow,
+                    destinationColumn)) {
+                errorMessage = "The queen's path is blocked.";
+                return false;
+            }
+
+            return true;
+
+        case PieceType::King:
+            if (absoluteRowDifference <= 1 &&
+                absoluteColumnDifference <= 1) {
+                return true;
+            }
+
+            errorMessage = "A king can move only one square.";
+            return false;
+
+        case PieceType::None:
+            errorMessage = "There is no piece on the source square.";
+            return false;
     }
 
-    return true;
+    errorMessage = "Unknown piece type.";
+    return false;
 }
 
 bool Game::isLegalPawnMove(
@@ -142,13 +235,16 @@ bool Game::isLegalPawnMove(
     const int startingRow =
         pawn.color == PieceColor::White ? 6 : 1;
 
-    const int rowDifference = destinationRow - sourceRow;
+    const int rowDifference =
+        destinationRow - sourceRow;
+
     const int columnDifference =
         destinationColumn - sourceColumn;
 
     if (columnDifference == 0) {
         if (destination.type != PieceType::None) {
-            errorMessage = "A pawn cannot move forward into an occupied square.";
+            errorMessage =
+                "A pawn cannot move forward into an occupied square.";
             return false;
         }
 
@@ -176,12 +272,14 @@ bool Game::isLegalPawnMove(
     if (std::abs(columnDifference) == 1 &&
         rowDifference == direction) {
         if (destination.type == PieceType::None) {
-            errorMessage = "A pawn can move diagonally only when capturing.";
+            errorMessage =
+                "A pawn can move diagonally only when capturing.";
             return false;
         }
 
         if (destination.color == pawn.color) {
-            errorMessage = "A pawn cannot capture its own piece.";
+            errorMessage =
+                "A pawn cannot capture its own piece.";
             return false;
         }
 
