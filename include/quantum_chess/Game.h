@@ -19,6 +19,8 @@ public:
         std::string& errorMessage
     );
 
+    bool isInCheck(PieceColor color) const;
+
 private:
     Board board_;
     PieceColor currentTurn_ = PieceColor::White;
@@ -43,6 +45,13 @@ private:
         int destinationRow,
         int destinationColumn,
         std::string& errorMessage
+    ) const;
+
+    bool pieceAttacksSquare(
+        int sourceRow,
+        int sourceColumn,
+        int targetRow,
+        int targetColumn
     ) const;
 
     void switchTurn();

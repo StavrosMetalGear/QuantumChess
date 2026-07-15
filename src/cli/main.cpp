@@ -14,16 +14,24 @@ int main() {
         std::cout << game.board().toString();
 
         const bool whiteTurn =
-            game.currentTurn() == quantum_chess::PieceColor::White;
+            game.currentTurn() ==
+            quantum_chess::PieceColor::White;
 
-        std::cout << "\n"
-                  << (whiteTurn ? "White" : "Black")
-                  << " move: ";
+        if (game.isInCheck(game.currentTurn())) {
+            std::cout << "\nCHECK!\n";
+        }
+
+        std::cout
+            << "\n"
+            << (whiteTurn ? "White" : "Black")
+            << " move: ";
 
         std::string source;
         std::cin >> source;
 
-        if (!std::cin || source == "quit" || source == "exit") {
+        if (!std::cin ||
+            source == "quit" ||
+            source == "exit") {
             break;
         }
 
@@ -36,10 +44,14 @@ int main() {
 
         std::string errorMessage;
 
-        if (!game.makeMove(source, destination, errorMessage)) {
-            std::cout << "\nInvalid move: "
-                      << errorMessage
-                      << "\n";
+        if (!game.makeMove(
+                source,
+                destination,
+                errorMessage)) {
+            std::cout
+                << "\nInvalid move: "
+                << errorMessage
+                << "\n";
         }
     }
 

@@ -30,7 +30,8 @@ bool Game::parseSquare(
 
     const char rank = square[1];
 
-    if (file < 'a' || file > 'h' || rank < '1' || rank > '8') {
+    if (file < 'a' || file > 'h' ||
+        rank < '1' || rank > '8') {
         return false;
     }
 
@@ -51,33 +52,48 @@ bool Game::makeMove(
     int destinationColumn = 0;
 
     if (!parseSquare(source, sourceRow, sourceColumn) ||
-        !parseSquare(destination, destinationRow, destinationColumn)) {
+        !parseSquare(
+            destination,
+            destinationRow,
+            destinationColumn)) {
         errorMessage = "Use squares such as e2 e4.";
         return false;
     }
 
     if (sourceRow == destinationRow &&
         sourceColumn == destinationColumn) {
-        errorMessage = "Source and destination are the same.";
+        errorMessage =
+            "Source and destination are the same.";
         return false;
     }
 
-    const Piece& sourcePiece = board_.at(sourceRow, sourceColumn);
-    const Piece& destinationPiece =
+    const Piece sourcePiece =
+        board_.at(sourceRow, sourceColumn);
+
+    const Piece destinationPiece =
         board_.at(destinationRow, destinationColumn);
 
     if (sourcePiece.type == PieceType::None) {
-        errorMessage = "There is no piece on the source square.";
+        errorMessage =
+            "There is no piece on the source square.";
         return false;
     }
 
     if (sourcePiece.color != currentTurn_) {
-        errorMessage = "That piece belongs to the other player.";
+        errorMessage =
+            "That piece belongs to the other player.";
         return false;
     }
 
     if (destinationPiece.color == currentTurn_) {
-        errorMessage = "You cannot capture your own piece.";
+        errorMessage =
+            "You cannot capture your own piece.";
+        return false;
+    }
+
+    if (destinationPiece.type == PieceType::King) {
+        errorMessage =
+            "The king cannot be captured. It must be checkmated.";
         return false;
     }
 
@@ -90,12 +106,21 @@ bool Game::makeMove(
         return false;
     }
 
+    const Board previousBoard = board_;
+
     board_.movePiece(
         sourceRow,
         sourceColumn,
         destinationRow,
         destinationColumn
     );
+
+    if (isInCheck(currentTurn_)) {
+        board_ = previousBoard;
+        errorMessage =
+            "That move leaves your king in check.";
+        return false;
+    }
 
     switchTurn();
     errorMessage.clear();
@@ -110,7 +135,8 @@ bool Game::isLegalMove(
     int destinationColumn,
     std::string& errorMessage
 ) const {
-    const Piece& piece = board_.at(sourceRow, sourceColumn);
+    const Piece& piece =
+        board_.at(sourceRow, sourceColumn);
 
     const int rowDifference =
         destinationRow - sourceRow;
@@ -142,12 +168,15 @@ bool Game::isLegalMove(
                 return true;
             }
 
-            errorMessage = "A knight must move in an L shape.";
+            errorMessage =
+                "A knight must move in an L shape.";
             return false;
 
         case PieceType::Bishop:
-            if (absoluteRowDifference != absoluteColumnDifference) {
-                errorMessage = "A bishop must move diagonally.";
+            if (absoluteRowDifference !=
+                absoluteColumnDifference) {
+                errorMessage =
+                    "A bishop must move diagonally.";
                 return false;
             }
 
@@ -156,14 +185,16 @@ bool Game::isLegalMove(
                     sourceColumn,
                     destinationRow,
                     destinationColumn)) {
-                errorMessage = "The bishop's path is blocked.";
+                errorMessage =
+                    "The bishop's path is blocked.";
                 return false;
             }
 
             return true;
 
         case PieceType::Rook:
-            if (rowDifference != 0 && columnDifference != 0) {
+            if (rowDifference != 0 &&
+                columnDifference != 0) {
                 errorMessage =
                     "A rook must move horizontally or vertically.";
                 return false;
@@ -174,7 +205,8 @@ bool Game::isLegalMove(
                     sourceColumn,
                     destinationRow,
                     destinationColumn)) {
-                errorMessage = "The rook's path is blocked.";
+                errorMessage =
+                    "The rook's path is blocked.";
                 return false;
             }
 
@@ -183,7 +215,8 @@ bool Game::isLegalMove(
         case PieceType::Queen:
             if (rowDifference != 0 &&
                 columnDifference != 0 &&
-                absoluteRowDifference != absoluteColumnDifference) {
+                absoluteRowDifference !=
+                    absoluteColumnDifference) {
                 errorMessage =
                     "A queen must move straight or diagonally.";
                 return false;
@@ -194,7 +227,8 @@ bool Game::isLegalMove(
                     sourceColumn,
                     destinationRow,
                     destinationColumn)) {
-                errorMessage = "The queen's path is blocked.";
+                errorMessage =
+                    "The queen's path is blocked.";
                 return false;
             }
 
@@ -206,11 +240,13 @@ bool Game::isLegalMove(
                 return true;
             }
 
-            errorMessage = "A king can move only one square.";
+            errorMessage =
+                "A king can move only one square.";
             return false;
 
         case PieceType::None:
-            errorMessage = "There is no piece on the source square.";
+            errorMessage =
+                "There is no piece on the source square.";
             return false;
     }
 
@@ -225,7 +261,9 @@ bool Game::isLegalPawnMove(
     int destinationColumn,
     std::string& errorMessage
 ) const {
-    const Piece& pawn = board_.at(sourceRow, sourceColumn);
+    const Piece& pawn =
+        board_.at(sourceRow, sourceColumn);
+
     const Piece& destination =
         board_.at(destinationRow, destinationColumn);
 
@@ -254,9 +292,12 @@ bool Game::isLegalPawnMove(
 
         if (sourceRow == startingRow &&
             rowDifference == 2 * direction) {
-            const int middleRow = sourceRow + direction;
+            const int middleRow =
+                sourceRow + direction;
 
-            if (board_.at(middleRow, sourceColumn).type ==
+            if (board_.at(
+                    middleRow,
+                    sourceColumn).type ==
                 PieceType::None) {
                 return true;
             }
@@ -277,16 +318,145 @@ bool Game::isLegalPawnMove(
             return false;
         }
 
-        if (destination.color == pawn.color) {
-            errorMessage =
-                "A pawn cannot capture its own piece.";
-            return false;
-        }
-
         return true;
     }
 
     errorMessage = "Illegal pawn movement.";
+    return false;
+}
+
+bool Game::pieceAttacksSquare(
+    int sourceRow,
+    int sourceColumn,
+    int targetRow,
+    int targetColumn
+) const {
+    const Piece& piece =
+        board_.at(sourceRow, sourceColumn);
+
+    if (piece.type == PieceType::None) {
+        return false;
+    }
+
+    const int rowDifference =
+        targetRow - sourceRow;
+
+    const int columnDifference =
+        targetColumn - sourceColumn;
+
+    const int absoluteRowDifference =
+        std::abs(rowDifference);
+
+    const int absoluteColumnDifference =
+        std::abs(columnDifference);
+
+    switch (piece.type) {
+        case PieceType::Pawn: {
+            const int direction =
+                piece.color == PieceColor::White
+                    ? -1
+                    : 1;
+
+            return rowDifference == direction &&
+                   absoluteColumnDifference == 1;
+        }
+
+        case PieceType::Knight:
+            return
+                (absoluteRowDifference == 2 &&
+                 absoluteColumnDifference == 1) ||
+                (absoluteRowDifference == 1 &&
+                 absoluteColumnDifference == 2);
+
+        case PieceType::Bishop:
+            return
+                absoluteRowDifference ==
+                    absoluteColumnDifference &&
+                board_.isPathClear(
+                    sourceRow,
+                    sourceColumn,
+                    targetRow,
+                    targetColumn
+                );
+
+        case PieceType::Rook:
+            return
+                (rowDifference == 0 ||
+                 columnDifference == 0) &&
+                board_.isPathClear(
+                    sourceRow,
+                    sourceColumn,
+                    targetRow,
+                    targetColumn
+                );
+
+        case PieceType::Queen:
+            return
+                (rowDifference == 0 ||
+                 columnDifference == 0 ||
+                 absoluteRowDifference ==
+                    absoluteColumnDifference) &&
+                board_.isPathClear(
+                    sourceRow,
+                    sourceColumn,
+                    targetRow,
+                    targetColumn
+                );
+
+        case PieceType::King:
+            return
+                absoluteRowDifference <= 1 &&
+                absoluteColumnDifference <= 1;
+
+        case PieceType::None:
+            return false;
+    }
+
+    return false;
+}
+
+bool Game::isInCheck(PieceColor color) const {
+    int kingRow = -1;
+    int kingColumn = -1;
+
+    for (int row = 0; row < 8; ++row) {
+        for (int column = 0; column < 8; ++column) {
+            const Piece& piece =
+                board_.at(row, column);
+
+            if (piece.type == PieceType::King &&
+                piece.color == color) {
+                kingRow = row;
+                kingColumn = column;
+            }
+        }
+    }
+
+    if (kingRow == -1 || kingColumn == -1) {
+        return false;
+    }
+
+    const PieceColor opponent =
+        color == PieceColor::White
+            ? PieceColor::Black
+            : PieceColor::White;
+
+    for (int row = 0; row < 8; ++row) {
+        for (int column = 0; column < 8; ++column) {
+            const Piece& piece =
+                board_.at(row, column);
+
+            if (piece.color == opponent &&
+                pieceAttacksSquare(
+                    row,
+                    column,
+                    kingRow,
+                    kingColumn)) {
+                return true;
+            }
+        }
+    }
+
     return false;
 }
 
