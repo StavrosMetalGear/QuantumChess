@@ -121,7 +121,97 @@ bool Game::makeMove(
             "That move leaves your king in check.";
         return false;
     }
+bool Game::moveLeavesKingInCheck(
+    int sourceRow,
+    int sourceColumn,
+    int destinationRow,
+    int destinationColumn,
+    PieceColor color
+) const {
+    Game testGame = *this;
 
+    testGame.board_.movePiece(
+        sourceRow,
+        sourceColumn,
+        destinationRow,
+        destinationColumn
+    );
+
+    return testGame.isInCheck(color);
+}
+
+bool Game::hasAnyLegalMove(PieceColor color) const {
+    for (int sourceRow = 0; sourceRow < 8; ++sourceRow) {
+        for (int sourceColumn = 0; sourceColumn < 8; ++sourceColumn) {
+            const Piece& piece =
+                board_.at(sourceRow, sourceColumn);
+
+            if (piece.color != color) {
+                continue;
+            }
+
+            for (int destinationRow = 0;
+                 destinationRow < 8;
+                 ++destinationRow) {
+                for (int destinationColumn = 0;
+                     destinationColumn < 8;
+                     ++destinationColumn) {
+
+                    if (sourceRow == destinationRow &&
+                        sourceColumn == destinationColumn) {
+                        continue;
+                    }
+
+                    const Piece& destination =
+                        board_.at(
+                            destinationRow,
+                            destinationColumn
+                        );
+
+                    if (destination.color == color) {
+                        continue;
+                    }
+
+                    if (destination.type == PieceType::King) {
+                        continue;
+                    }
+
+                    std::string errorMessage;
+
+                    if (!isLegalMove(
+                            sourceRow,
+                            sourceColumn,
+                            destinationRow,
+                            destinationColumn,
+                            errorMessage)) {
+                        continue;
+                    }
+
+                    if (!moveLeavesKingInCheck(
+                            sourceRow,
+                            sourceColumn,
+                            destinationRow,
+                            destinationColumn,
+                            color)) {
+                        return true;
+                    }
+                }
+            }
+        }
+    }
+
+    return false;
+}
+
+bool Game::isCheckmate(PieceColor color) const {
+    return isInCheck(color) &&
+           !hasAnyLegalMove(color);
+}
+
+bool Game::isStalemate(PieceColor color) const {
+    return !isInCheck(color) &&
+           !hasAnyLegalMove(color);
+}
     switchTurn();
     errorMessage.clear();
 

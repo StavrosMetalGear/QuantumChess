@@ -20,6 +20,9 @@ public:
     );
 
     bool isInCheck(PieceColor color) const;
+    bool hasAnyLegalMove(PieceColor color) const;
+    bool isCheckmate(PieceColor color) const;
+    bool isStalemate(PieceColor color) const;
 
 private:
     Board board_;
@@ -52,6 +55,14 @@ private:
         int sourceColumn,
         int targetRow,
         int targetColumn
+    ) const;
+
+    bool moveLeavesKingInCheck(
+        int sourceRow,
+        int sourceColumn,
+        int destinationRow,
+        int destinationColumn,
+        PieceColor color
     ) const;
 
     void switchTurn();

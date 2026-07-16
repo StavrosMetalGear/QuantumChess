@@ -13,11 +13,27 @@ int main() {
     while (true) {
         std::cout << game.board().toString();
 
-        const bool whiteTurn =
-            game.currentTurn() ==
-            quantum_chess::PieceColor::White;
+        const quantum_chess::PieceColor turn =
+            game.currentTurn();
 
-        if (game.isInCheck(game.currentTurn())) {
+        const bool whiteTurn =
+            turn == quantum_chess::PieceColor::White;
+
+        if (game.isCheckmate(turn)) {
+            std::cout << "\nCHECKMATE!\n";
+            std::cout
+                << (whiteTurn ? "Black" : "White")
+                << " wins.\n";
+            break;
+        }
+
+        if (game.isStalemate(turn)) {
+            std::cout << "\nSTALEMATE!\n";
+            std::cout << "The game is a draw.\n";
+            break;
+        }
+
+        if (game.isInCheck(turn)) {
             std::cout << "\nCHECK!\n";
         }
 
