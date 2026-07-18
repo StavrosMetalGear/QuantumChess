@@ -65,6 +65,11 @@ private:
         PieceColor color
     ) const;
 
+    void promotePawnIfNeeded(
+        int row,
+        int column
+    );
+
     void switchTurn();
 };
 

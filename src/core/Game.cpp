@@ -115,6 +115,11 @@ bool Game::makeMove(
         destinationColumn
     );
 
+    promotePawnIfNeeded(
+        destinationRow,
+        destinationColumn
+    );
+
     if (isInCheck(currentTurn_)) {
         board_ = previousBoard;
         errorMessage =
@@ -477,6 +482,11 @@ bool Game::moveLeavesKingInCheck(
         destinationColumn
     );
 
+    testGame.promotePawnIfNeeded(
+        destinationRow,
+        destinationColumn
+    );
+
     return testGame.isInCheck(color);
 }
 
@@ -551,6 +561,29 @@ bool Game::isCheckmate(PieceColor color) const {
 bool Game::isStalemate(PieceColor color) const {
     return !isInCheck(color) &&
            !hasAnyLegalMove(color);
+}
+
+void Game::promotePawnIfNeeded(
+    int row,
+    int column
+) {
+    Piece& piece = board_.at(row, column);
+
+    if (piece.type != PieceType::Pawn) {
+        return;
+    }
+
+    const bool whitePromotion =
+        piece.color == PieceColor::White &&
+        row == 0;
+
+    const bool blackPromotion =
+        piece.color == PieceColor::Black &&
+        row == 7;
+
+    if (whitePromotion || blackPromotion) {
+        piece.type = PieceType::Queen;
+    }
 }
 
 void Game::switchTurn() {
