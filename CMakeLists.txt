@@ -25,3 +25,19 @@ target_link_libraries(QuantumChessCLI
     PRIVATE
         quantum_chess_core
 )
+
+enable_testing()
+
+add_executable(QuantumChessTests
+    tests/test_game.cpp
+)
+
+target_link_libraries(QuantumChessTests
+    PRIVATE
+        quantum_chess_core
+)
+
+add_test(
+    NAME QuantumChessTests
+    COMMAND QuantumChessTests
+)
