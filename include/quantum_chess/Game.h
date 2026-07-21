@@ -57,6 +57,20 @@ private:
         int targetColumn
     ) const;
 
+    bool isLegalCastlingMove(
+        int sourceRow,
+        int sourceColumn,
+        int destinationRow,
+        int destinationColumn,
+        std::string& errorMessage
+    ) const;
+
+    void moveCastlingRook(
+        int kingRow,
+        int kingSourceColumn,
+        int kingDestinationColumn
+    );
+
     bool moveLeavesKingInCheck(
         int sourceRow,
         int sourceColumn,

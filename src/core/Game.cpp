@@ -108,12 +108,25 @@ bool Game::makeMove(
 
     const Board previousBoard = board_;
 
+    const bool castlingMove =
+        sourcePiece.type == PieceType::King &&
+        sourceRow == destinationRow &&
+        std::abs(destinationColumn - sourceColumn) == 2;
+
     board_.movePiece(
         sourceRow,
         sourceColumn,
         destinationRow,
         destinationColumn
     );
+
+    if (castlingMove) {
+        moveCastlingRook(
+            destinationRow,
+            sourceColumn,
+            destinationColumn
+        );
+    }
 
     promotePawnIfNeeded(
         destinationRow,
@@ -240,13 +253,24 @@ bool Game::isLegalMove(
             return true;
 
         case PieceType::King:
+            if (absoluteRowDifference == 0 &&
+                absoluteColumnDifference == 2) {
+                return isLegalCastlingMove(
+                    sourceRow,
+                    sourceColumn,
+                    destinationRow,
+                    destinationColumn,
+                    errorMessage
+                );
+            }
+
             if (absoluteRowDifference <= 1 &&
                 absoluteColumnDifference <= 1) {
                 return true;
             }
 
             errorMessage =
-                "A king can move only one square.";
+                "A king can move one square or castle.";
             return false;
 
         case PieceType::None:
@@ -466,6 +490,143 @@ bool Game::isInCheck(PieceColor color) const {
 }
 
 
+
+bool Game::isLegalCastlingMove(
+    int sourceRow,
+    int sourceColumn,
+    int destinationRow,
+    int destinationColumn,
+    std::string& errorMessage
+) const {
+    const Piece& king =
+        board_.at(sourceRow, sourceColumn);
+
+    const int homeRow =
+        king.color == PieceColor::White ? 7 : 0;
+
+    if (sourceRow != homeRow ||
+        destinationRow != homeRow ||
+        sourceColumn != 4) {
+        errorMessage =
+            "The king is not on its castling square.";
+        return false;
+    }
+
+    if (king.hasMoved) {
+        errorMessage =
+            "The king has already moved.";
+        return false;
+    }
+
+    const bool kingSide =
+        destinationColumn == 6;
+
+    const bool queenSide =
+        destinationColumn == 2;
+
+    if (!kingSide && !queenSide) {
+        errorMessage =
+            "Invalid castling destination.";
+        return false;
+    }
+
+    const int rookColumn =
+        kingSide ? 7 : 0;
+
+    const Piece& rook =
+        board_.at(homeRow, rookColumn);
+
+    if (rook.type != PieceType::Rook ||
+        rook.color != king.color) {
+        errorMessage =
+            "The required rook is not available.";
+        return false;
+    }
+
+    if (rook.hasMoved) {
+        errorMessage =
+            "The rook has already moved.";
+        return false;
+    }
+
+    if (!board_.isPathClear(
+            homeRow,
+            sourceColumn,
+            homeRow,
+            rookColumn)) {
+        errorMessage =
+            "Pieces are blocking the castling path.";
+        return false;
+    }
+
+    if (isInCheck(king.color)) {
+        errorMessage =
+            "You cannot castle while in check.";
+        return false;
+    }
+
+    const int direction =
+        kingSide ? 1 : -1;
+
+    Game transitPosition = *this;
+
+    transitPosition.board_.movePiece(
+        sourceRow,
+        sourceColumn,
+        sourceRow,
+        sourceColumn + direction
+    );
+
+    if (transitPosition.isInCheck(king.color)) {
+        errorMessage =
+            "The king cannot castle through check.";
+        return false;
+    }
+
+    Game destinationPosition = *this;
+
+    destinationPosition.board_.movePiece(
+        sourceRow,
+        sourceColumn,
+        destinationRow,
+        destinationColumn
+    );
+
+    if (destinationPosition.isInCheck(king.color)) {
+        errorMessage =
+            "The king cannot castle into check.";
+        return false;
+    }
+
+    return true;
+}
+
+void Game::moveCastlingRook(
+    int kingRow,
+    int kingSourceColumn,
+    int kingDestinationColumn
+) {
+    if (kingSourceColumn != 4) {
+        return;
+    }
+
+    if (kingDestinationColumn == 6) {
+        board_.movePiece(
+            kingRow,
+            7,
+            kingRow,
+            5
+        );
+    } else if (kingDestinationColumn == 2) {
+        board_.movePiece(
+            kingRow,
+            0,
+            kingRow,
+            3
+        );
+    }
+}
+
 bool Game::moveLeavesKingInCheck(
     int sourceRow,
     int sourceColumn,
@@ -475,12 +636,28 @@ bool Game::moveLeavesKingInCheck(
 ) const {
     Game testGame = *this;
 
+    const Piece movingPiece =
+        testGame.board_.at(sourceRow, sourceColumn);
+
+    const bool castlingMove =
+        movingPiece.type == PieceType::King &&
+        sourceRow == destinationRow &&
+        std::abs(destinationColumn - sourceColumn) == 2;
+
     testGame.board_.movePiece(
         sourceRow,
         sourceColumn,
         destinationRow,
         destinationColumn
     );
+
+    if (castlingMove) {
+        testGame.moveCastlingRook(
+            destinationRow,
+            sourceColumn,
+            destinationColumn
+        );
+    }
 
     testGame.promotePawnIfNeeded(
         destinationRow,

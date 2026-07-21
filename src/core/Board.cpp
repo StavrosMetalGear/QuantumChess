@@ -58,6 +58,7 @@ bool Board::movePiece(
     }
 
     destination = source;
+    destination.hasMoved = true;
     source = {};
 
     return true;

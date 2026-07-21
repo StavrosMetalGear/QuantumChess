@@ -21,6 +21,7 @@ enum class PieceColor {
 struct Piece {
     PieceType type = PieceType::None;
     PieceColor color = PieceColor::None;
+    bool hasMoved = false;
 };
 
 }
