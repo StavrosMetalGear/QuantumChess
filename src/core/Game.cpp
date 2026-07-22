@@ -113,12 +113,31 @@ bool Game::makeMove(
         sourceRow == destinationRow &&
         std::abs(destinationColumn - sourceColumn) == 2;
 
+    const bool enPassantCapture =
+        sourcePiece.type == PieceType::Pawn &&
+        destinationPiece.type == PieceType::None &&
+        sourceColumn != destinationColumn &&
+        enPassantAvailable_ &&
+        destinationRow == enPassantTargetRow_ &&
+        destinationColumn == enPassantTargetColumn_;
+
+    const bool pawnMovedTwoSquares =
+        sourcePiece.type == PieceType::Pawn &&
+        std::abs(destinationRow - sourceRow) == 2;
+
     board_.movePiece(
         sourceRow,
         sourceColumn,
         destinationRow,
         destinationColumn
     );
+
+    if (enPassantCapture) {
+        board_.at(
+            enPassantPawnRow_,
+            enPassantPawnColumn_
+        ) = {};
+    }
 
     if (castlingMove) {
         moveCastlingRook(
@@ -138,6 +157,24 @@ bool Game::makeMove(
         errorMessage =
             "That move leaves your king in check.";
         return false;
+    }
+
+    enPassantAvailable_ = false;
+    enPassantTargetRow_ = -1;
+    enPassantTargetColumn_ = -1;
+    enPassantPawnRow_ = -1;
+    enPassantPawnColumn_ = -1;
+
+    if (pawnMovedTwoSquares) {
+        enPassantAvailable_ = true;
+        enPassantTargetRow_ =
+            (sourceRow + destinationRow) / 2;
+        enPassantTargetColumn_ =
+            destinationColumn;
+        enPassantPawnRow_ =
+            destinationRow;
+        enPassantPawnColumn_ =
+            destinationColumn;
     }
 
     switchTurn();
@@ -341,13 +378,28 @@ bool Game::isLegalPawnMove(
 
     if (std::abs(columnDifference) == 1 &&
         rowDifference == direction) {
-        if (destination.type == PieceType::None) {
-            errorMessage =
-                "A pawn can move diagonally only when capturing.";
-            return false;
+        if (destination.type != PieceType::None) {
+            return true;
         }
 
-        return true;
+        if (enPassantAvailable_ &&
+            destinationRow == enPassantTargetRow_ &&
+            destinationColumn == enPassantTargetColumn_) {
+            const Piece& capturedPawn =
+                board_.at(
+                    enPassantPawnRow_,
+                    enPassantPawnColumn_
+                );
+
+            if (capturedPawn.type == PieceType::Pawn &&
+                capturedPawn.color != pawn.color) {
+                return true;
+            }
+        }
+
+        errorMessage =
+            "A pawn can move diagonally only when capturing.";
+        return false;
     }
 
     errorMessage = "Illegal pawn movement.";
@@ -639,10 +691,26 @@ bool Game::moveLeavesKingInCheck(
     const Piece movingPiece =
         testGame.board_.at(sourceRow, sourceColumn);
 
+    const Piece destinationPiece =
+        testGame.board_.at(
+            destinationRow,
+            destinationColumn
+        );
+
     const bool castlingMove =
         movingPiece.type == PieceType::King &&
         sourceRow == destinationRow &&
         std::abs(destinationColumn - sourceColumn) == 2;
+
+    const bool enPassantCapture =
+        movingPiece.type == PieceType::Pawn &&
+        destinationPiece.type == PieceType::None &&
+        sourceColumn != destinationColumn &&
+        testGame.enPassantAvailable_ &&
+        destinationRow ==
+            testGame.enPassantTargetRow_ &&
+        destinationColumn ==
+            testGame.enPassantTargetColumn_;
 
     testGame.board_.movePiece(
         sourceRow,
@@ -650,6 +718,13 @@ bool Game::moveLeavesKingInCheck(
         destinationRow,
         destinationColumn
     );
+
+    if (enPassantCapture) {
+        testGame.board_.at(
+            testGame.enPassantPawnRow_,
+            testGame.enPassantPawnColumn_
+        ) = {};
+    }
 
     if (castlingMove) {
         testGame.moveCastlingRook(

@@ -28,6 +28,12 @@ private:
     Board board_;
     PieceColor currentTurn_ = PieceColor::White;
 
+    bool enPassantAvailable_ = false;
+    int enPassantTargetRow_ = -1;
+    int enPassantTargetColumn_ = -1;
+    int enPassantPawnRow_ = -1;
+    int enPassantPawnColumn_ = -1;
+
     static bool parseSquare(
         const std::string& square,
         int& row,
