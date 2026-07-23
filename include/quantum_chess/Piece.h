@@ -22,6 +22,10 @@ struct Piece {
     PieceType type = PieceType::None;
     PieceColor color = PieceColor::None;
     bool hasMoved = false;
+
+    bool isQuantum = false;
+    int quantumGroupId = -1;
+    double probability = 1.0;
 };
 
 }

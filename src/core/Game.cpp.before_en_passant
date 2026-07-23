@@ -2,7 +2,6 @@
 
 #include <cctype>
 #include <cstdlib>
-#include <sstream>
 
 namespace quantum_chess {
 
@@ -114,31 +113,12 @@ bool Game::makeMove(
         sourceRow == destinationRow &&
         std::abs(destinationColumn - sourceColumn) == 2;
 
-    const bool enPassantCapture =
-        sourcePiece.type == PieceType::Pawn &&
-        destinationPiece.type == PieceType::None &&
-        sourceColumn != destinationColumn &&
-        enPassantAvailable_ &&
-        destinationRow == enPassantTargetRow_ &&
-        destinationColumn == enPassantTargetColumn_;
-
-    const bool pawnMovedTwoSquares =
-        sourcePiece.type == PieceType::Pawn &&
-        std::abs(destinationRow - sourceRow) == 2;
-
     board_.movePiece(
         sourceRow,
         sourceColumn,
         destinationRow,
         destinationColumn
     );
-
-    if (enPassantCapture) {
-        board_.at(
-            enPassantPawnRow_,
-            enPassantPawnColumn_
-        ) = {};
-    }
 
     if (castlingMove) {
         moveCastlingRook(
@@ -160,215 +140,10 @@ bool Game::makeMove(
         return false;
     }
 
-    enPassantAvailable_ = false;
-    enPassantTargetRow_ = -1;
-    enPassantTargetColumn_ = -1;
-    enPassantPawnRow_ = -1;
-    enPassantPawnColumn_ = -1;
-
-    if (pawnMovedTwoSquares) {
-        enPassantAvailable_ = true;
-        enPassantTargetRow_ =
-            (sourceRow + destinationRow) / 2;
-        enPassantTargetColumn_ =
-            destinationColumn;
-        enPassantPawnRow_ =
-            destinationRow;
-        enPassantPawnColumn_ =
-            destinationColumn;
-    }
-
     switchTurn();
     errorMessage.clear();
 
     return true;
-}
-
-
-bool Game::splitKnight(
-    const std::string& source,
-    const std::string& firstDestination,
-    const std::string& secondDestination,
-    std::string& errorMessage
-) {
-    int sourceRow = 0;
-    int sourceColumn = 0;
-    int firstRow = 0;
-    int firstColumn = 0;
-    int secondRow = 0;
-    int secondColumn = 0;
-
-    if (!parseSquare(source, sourceRow, sourceColumn) ||
-        !parseSquare(
-            firstDestination,
-            firstRow,
-            firstColumn
-        ) ||
-        !parseSquare(
-            secondDestination,
-            secondRow,
-            secondColumn
-        )) {
-        errorMessage =
-            "Use: split b1 a3 c3";
-        return false;
-    }
-
-    if (firstRow == secondRow &&
-        firstColumn == secondColumn) {
-        errorMessage =
-            "The two quantum destinations must be different.";
-        return false;
-    }
-
-    const Piece sourcePiece =
-        board_.at(sourceRow, sourceColumn);
-
-    if (sourcePiece.type != PieceType::Knight) {
-        errorMessage =
-            "Only knights can split in this version.";
-        return false;
-    }
-
-    if (sourcePiece.color != currentTurn_) {
-        errorMessage =
-            "That knight belongs to the other player.";
-        return false;
-    }
-
-    if (sourcePiece.isQuantum) {
-        errorMessage =
-            "A quantum knight cannot split again.";
-        return false;
-    }
-
-    if (board_.at(firstRow, firstColumn).type !=
-            PieceType::None ||
-        board_.at(secondRow, secondColumn).type !=
-            PieceType::None) {
-        errorMessage =
-            "Both quantum destination squares must be empty.";
-        return false;
-    }
-
-    const int firstRowDifference =
-        std::abs(firstRow - sourceRow);
-
-    const int firstColumnDifference =
-        std::abs(firstColumn - sourceColumn);
-
-    const int secondRowDifference =
-        std::abs(secondRow - sourceRow);
-
-    const int secondColumnDifference =
-        std::abs(secondColumn - sourceColumn);
-
-    const bool firstMoveIsLegal =
-        (firstRowDifference == 2 &&
-         firstColumnDifference == 1) ||
-        (firstRowDifference == 1 &&
-         firstColumnDifference == 2);
-
-    const bool secondMoveIsLegal =
-        (secondRowDifference == 2 &&
-         secondColumnDifference == 1) ||
-        (secondRowDifference == 1 &&
-         secondColumnDifference == 2);
-
-    if (!firstMoveIsLegal || !secondMoveIsLegal) {
-        errorMessage =
-            "Both destinations must be legal knight moves.";
-        return false;
-    }
-
-    Piece firstBranch = sourcePiece;
-    Piece secondBranch = sourcePiece;
-
-    const int groupId = nextQuantumGroupId_++;
-
-    firstBranch.hasMoved = true;
-    firstBranch.isQuantum = true;
-    firstBranch.quantumGroupId = groupId;
-    firstBranch.probability = 0.5;
-
-    secondBranch.hasMoved = true;
-    secondBranch.isQuantum = true;
-    secondBranch.quantumGroupId = groupId;
-    secondBranch.probability = 0.5;
-
-    Board previousBoard = board_;
-
-    board_.clearSquare(
-        sourceRow,
-        sourceColumn
-    );
-
-    board_.setPiece(
-        firstRow,
-        firstColumn,
-        firstBranch
-    );
-
-    board_.setPiece(
-        secondRow,
-        secondColumn,
-        secondBranch
-    );
-
-    if (isInCheck(currentTurn_)) {
-        board_ = previousBoard;
-        --nextQuantumGroupId_;
-
-        errorMessage =
-            "The split would leave your king in check.";
-        return false;
-    }
-
-    switchTurn();
-    errorMessage.clear();
-
-    return true;
-}
-
-std::string Game::quantumSummary() const {
-    std::ostringstream output;
-    bool foundQuantumPiece = false;
-
-    for (int row = 0; row < 8; ++row) {
-        for (int column = 0; column < 8; ++column) {
-            const Piece& piece =
-                board_.at(row, column);
-
-            if (!piece.isQuantum) {
-                continue;
-            }
-
-            foundQuantumPiece = true;
-
-            const char file =
-                static_cast<char>('a' + column);
-
-            const int rank = 8 - row;
-
-            output
-                << "Quantum group "
-                << piece.quantumGroupId
-                << ": knight at "
-                << file
-                << rank
-                << " with "
-                << static_cast<int>(
-                    piece.probability * 100.0
-                )
-                << "% probability\n";
-        }
-    }
-
-    if (!foundQuantumPiece) {
-        return "";
-    }
-
-    return output.str();
 }
 
 bool Game::isLegalMove(
@@ -566,28 +341,13 @@ bool Game::isLegalPawnMove(
 
     if (std::abs(columnDifference) == 1 &&
         rowDifference == direction) {
-        if (destination.type != PieceType::None) {
-            return true;
+        if (destination.type == PieceType::None) {
+            errorMessage =
+                "A pawn can move diagonally only when capturing.";
+            return false;
         }
 
-        if (enPassantAvailable_ &&
-            destinationRow == enPassantTargetRow_ &&
-            destinationColumn == enPassantTargetColumn_) {
-            const Piece& capturedPawn =
-                board_.at(
-                    enPassantPawnRow_,
-                    enPassantPawnColumn_
-                );
-
-            if (capturedPawn.type == PieceType::Pawn &&
-                capturedPawn.color != pawn.color) {
-                return true;
-            }
-        }
-
-        errorMessage =
-            "A pawn can move diagonally only when capturing.";
-        return false;
+        return true;
     }
 
     errorMessage = "Illegal pawn movement.";
@@ -879,26 +639,10 @@ bool Game::moveLeavesKingInCheck(
     const Piece movingPiece =
         testGame.board_.at(sourceRow, sourceColumn);
 
-    const Piece destinationPiece =
-        testGame.board_.at(
-            destinationRow,
-            destinationColumn
-        );
-
     const bool castlingMove =
         movingPiece.type == PieceType::King &&
         sourceRow == destinationRow &&
         std::abs(destinationColumn - sourceColumn) == 2;
-
-    const bool enPassantCapture =
-        movingPiece.type == PieceType::Pawn &&
-        destinationPiece.type == PieceType::None &&
-        sourceColumn != destinationColumn &&
-        testGame.enPassantAvailable_ &&
-        destinationRow ==
-            testGame.enPassantTargetRow_ &&
-        destinationColumn ==
-            testGame.enPassantTargetColumn_;
 
     testGame.board_.movePiece(
         sourceRow,
@@ -906,13 +650,6 @@ bool Game::moveLeavesKingInCheck(
         destinationRow,
         destinationColumn
     );
-
-    if (enPassantCapture) {
-        testGame.board_.at(
-            testGame.enPassantPawnRow_,
-            testGame.enPassantPawnColumn_
-        ) = {};
-    }
 
     if (castlingMove) {
         testGame.moveCastlingRook(

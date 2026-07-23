@@ -44,6 +44,21 @@ Piece& Board::at(int row, int column) {
     return squares_[row][column];
 }
 
+void Board::setPiece(
+    int row,
+    int column,
+    const Piece& piece
+) {
+    squares_[row][column] = piece;
+}
+
+void Board::clearSquare(
+    int row,
+    int column
+) {
+    squares_[row][column] = {};
+}
+
 bool Board::movePiece(
     int sourceRow,
     int sourceColumn,

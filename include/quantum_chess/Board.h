@@ -17,6 +17,17 @@ public:
     const Piece& at(int row, int column) const;
     Piece& at(int row, int column);
 
+    void setPiece(
+        int row,
+        int column,
+        const Piece& piece
+    );
+
+    void clearSquare(
+        int row,
+        int column
+    );
+
     bool movePiece(
         int sourceRow,
         int sourceColumn,
