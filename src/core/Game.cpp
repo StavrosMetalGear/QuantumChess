@@ -3,6 +3,8 @@
 #include <cctype>
 #include <cstdlib>
 #include <sstream>
+#include <random>
+#include <vector>
 
 namespace quantum_chess {
 
@@ -325,6 +327,157 @@ bool Game::splitKnight(
     }
 
     switchTurn();
+    errorMessage.clear();
+
+    return true;
+}
+
+
+bool Game::measureQuantumPiece(
+    const std::string& square,
+    std::string& resultMessage,
+    std::string& errorMessage
+) {
+    int selectedRow = 0;
+    int selectedColumn = 0;
+
+    if (!parseSquare(
+            square,
+            selectedRow,
+            selectedColumn)) {
+        errorMessage =
+            "Use a valid square such as a3.";
+        return false;
+    }
+
+    const Piece selectedPiece =
+        board_.at(selectedRow, selectedColumn);
+
+    if (!selectedPiece.isQuantum ||
+        selectedPiece.quantumGroupId < 0) {
+        errorMessage =
+            "There is no quantum piece on that square.";
+        return false;
+    }
+
+    struct Branch {
+        int row;
+        int column;
+        double probability;
+    };
+
+    std::vector<Branch> branches;
+
+    for (int row = 0; row < 8; ++row) {
+        for (int column = 0; column < 8; ++column) {
+            const Piece& piece =
+                board_.at(row, column);
+
+            if (piece.isQuantum &&
+                piece.quantumGroupId ==
+                    selectedPiece.quantumGroupId) {
+                branches.push_back({
+                    row,
+                    column,
+                    piece.probability
+                });
+            }
+        }
+    }
+
+    if (branches.empty()) {
+        errorMessage =
+            "The quantum group contains no branches.";
+        return false;
+    }
+
+    double totalProbability = 0.0;
+
+    for (const Branch& branch : branches) {
+        totalProbability += branch.probability;
+    }
+
+    if (totalProbability <= 0.0) {
+        errorMessage =
+            "The quantum probabilities are invalid.";
+        return false;
+    }
+
+    static std::random_device randomDevice;
+    static std::mt19937 generator(
+        randomDevice()
+    );
+
+    std::uniform_real_distribution<double> distribution(
+        0.0,
+        totalProbability
+    );
+
+    const double measurement =
+        distribution(generator);
+
+    double accumulatedProbability = 0.0;
+    std::size_t survivingIndex =
+        branches.size() - 1;
+
+    for (std::size_t index = 0;
+         index < branches.size();
+         ++index) {
+        accumulatedProbability +=
+            branches[index].probability;
+
+        if (measurement <=
+            accumulatedProbability) {
+            survivingIndex = index;
+            break;
+        }
+    }
+
+    Piece survivingPiece =
+        board_.at(
+            branches[survivingIndex].row,
+            branches[survivingIndex].column
+        );
+
+    for (const Branch& branch : branches) {
+        board_.clearSquare(
+            branch.row,
+            branch.column
+        );
+    }
+
+    survivingPiece.isQuantum = false;
+    survivingPiece.quantumGroupId = -1;
+    survivingPiece.probability = 1.0;
+
+    const Branch& survivingBranch =
+        branches[survivingIndex];
+
+    board_.setPiece(
+        survivingBranch.row,
+        survivingBranch.column,
+        survivingPiece
+    );
+
+    const char file =
+        static_cast<char>(
+            'a' + survivingBranch.column
+        );
+
+    const int rank =
+        8 - survivingBranch.row;
+
+    std::ostringstream output;
+
+    output
+        << "Quantum group "
+        << selectedPiece.quantumGroupId
+        << " collapsed to "
+        << file
+        << rank
+        << ".";
+
+    resultMessage = output.str();
     errorMessage.clear();
 
     return true;

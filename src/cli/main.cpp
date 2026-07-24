@@ -11,6 +11,7 @@ int main() {
     std::cout << "Quantum Chess\n";
     std::cout << "Normal move: e2 e4\n";
     std::cout << "Quantum split: split b1 a3 c3\n";
+    std::cout << "Measurement: measure a3\n";
     std::cout << "Exit: quit\n";
 
     while (true) {
@@ -42,7 +43,8 @@ int main() {
 
         if (game.isStalemate(turn)) {
             std::cout << "\nSTALEMATE!\n";
-            std::cout << "The game is a draw.\n";
+            std::cout
+                << "The game is a draw.\n";
             break;
         }
 
@@ -57,11 +59,16 @@ int main() {
 
         std::string line;
 
-        if (!std::getline(std::cin >> std::ws, line)) {
+        if (!std::getline(std::cin, line)) {
             break;
         }
 
-        if (line == "quit" || line == "exit") {
+        if (line.empty()) {
+            continue;
+        }
+
+        if (line == "quit" ||
+            line == "exit") {
             break;
         }
 
@@ -74,33 +81,50 @@ int main() {
         }
 
         std::string errorMessage;
+        std::string resultMessage;
         bool successful = false;
 
-        if (tokens.size() == 2) {
-            successful = game.makeMove(
-                tokens[0],
-                tokens[1],
-                errorMessage
-            );
+        if (tokens.size() == 2 &&
+            tokens[0] == "measure") {
+            successful =
+                game.measureQuantumPiece(
+                    tokens[1],
+                    resultMessage,
+                    errorMessage
+                );
+        } else if (tokens.size() == 2) {
+            successful =
+                game.makeMove(
+                    tokens[0],
+                    tokens[1],
+                    errorMessage
+                );
         } else if (
             tokens.size() == 4 &&
             tokens[0] == "split"
         ) {
-            successful = game.splitKnight(
-                tokens[1],
-                tokens[2],
-                tokens[3],
-                errorMessage
-            );
+            successful =
+                game.splitKnight(
+                    tokens[1],
+                    tokens[2],
+                    tokens[3],
+                    errorMessage
+                );
         } else {
             errorMessage =
-                "Use e2 e4 or split b1 a3 c3.";
+                "Use e2 e4, split b1 a3 c3, "
+                "or measure a3.";
         }
 
         if (!successful) {
             std::cout
                 << "\nInvalid command: "
                 << errorMessage
+                << "\n";
+        } else if (!resultMessage.empty()) {
+            std::cout
+                << "\n"
+                << resultMessage
                 << "\n";
         }
     }

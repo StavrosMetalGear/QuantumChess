@@ -26,6 +26,12 @@ public:
         std::string& errorMessage
     );
 
+    bool measureQuantumPiece(
+        const std::string& square,
+        std::string& resultMessage,
+        std::string& errorMessage
+    );
+
     std::string quantumSummary() const;
 
     bool isInCheck(PieceColor color) const;
