@@ -79,6 +79,13 @@ private:
         int targetColumn
     ) const;
 
+    bool collapseQuantumGroup(
+        int quantumGroupId,
+        int& survivingRow,
+        int& survivingColumn,
+        std::string& resultMessage
+    );
+
     bool isLegalCastlingMove(
         int sourceRow,
         int sourceColumn,

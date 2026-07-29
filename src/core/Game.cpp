@@ -73,7 +73,7 @@ bool Game::makeMove(
     const Piece sourcePiece =
         board_.at(sourceRow, sourceColumn);
 
-    const Piece destinationPiece =
+    Piece destinationPiece =
         board_.at(destinationRow, destinationColumn);
 
     if (sourcePiece.type == PieceType::None) {
@@ -92,6 +92,46 @@ bool Game::makeMove(
         errorMessage =
             "You cannot capture your own piece.";
         return false;
+    }
+
+    if (destinationPiece.isQuantum &&
+        destinationPiece.color != currentTurn_) {
+        const int measuredGroupId =
+            destinationPiece.quantumGroupId;
+
+        int survivingRow = -1;
+        int survivingColumn = -1;
+        std::string measurementResult;
+
+        if (!collapseQuantumGroup(
+                measuredGroupId,
+                survivingRow,
+                survivingColumn,
+                measurementResult)) {
+            errorMessage =
+                "Quantum measurement failed.";
+            return false;
+        }
+
+        const bool targetBranchSurvived =
+            survivingRow == destinationRow &&
+            survivingColumn == destinationColumn;
+
+        if (!targetBranchSurvived) {
+            switchTurn();
+
+            errorMessage =
+                measurementResult +
+                " The capture failed because this branch disappeared.";
+
+            return false;
+        }
+
+        destinationPiece =
+            board_.at(
+                destinationRow,
+                destinationColumn
+            );
     }
 
     if (destinationPiece.type == PieceType::King) {
@@ -333,33 +373,13 @@ bool Game::splitKnight(
 }
 
 
-bool Game::measureQuantumPiece(
-    const std::string& square,
-    std::string& resultMessage,
-    std::string& errorMessage
+
+bool Game::collapseQuantumGroup(
+    int quantumGroupId,
+    int& survivingRow,
+    int& survivingColumn,
+    std::string& resultMessage
 ) {
-    int selectedRow = 0;
-    int selectedColumn = 0;
-
-    if (!parseSquare(
-            square,
-            selectedRow,
-            selectedColumn)) {
-        errorMessage =
-            "Use a valid square such as a3.";
-        return false;
-    }
-
-    const Piece selectedPiece =
-        board_.at(selectedRow, selectedColumn);
-
-    if (!selectedPiece.isQuantum ||
-        selectedPiece.quantumGroupId < 0) {
-        errorMessage =
-            "There is no quantum piece on that square.";
-        return false;
-    }
-
     struct Branch {
         int row;
         int column;
@@ -374,8 +394,7 @@ bool Game::measureQuantumPiece(
                 board_.at(row, column);
 
             if (piece.isQuantum &&
-                piece.quantumGroupId ==
-                    selectedPiece.quantumGroupId) {
+                piece.quantumGroupId == quantumGroupId) {
                 branches.push_back({
                     row,
                     column,
@@ -386,8 +405,6 @@ bool Game::measureQuantumPiece(
     }
 
     if (branches.empty()) {
-        errorMessage =
-            "The quantum group contains no branches.";
         return false;
     }
 
@@ -398,26 +415,22 @@ bool Game::measureQuantumPiece(
     }
 
     if (totalProbability <= 0.0) {
-        errorMessage =
-            "The quantum probabilities are invalid.";
         return false;
     }
 
     static std::random_device randomDevice;
-    static std::mt19937 generator(
-        randomDevice()
-    );
+    static std::mt19937 generator(randomDevice());
 
     std::uniform_real_distribution<double> distribution(
         0.0,
         totalProbability
     );
 
-    const double measurement =
+    const double measuredValue =
         distribution(generator);
 
     double accumulatedProbability = 0.0;
-    std::size_t survivingIndex =
+    std::size_t selectedIndex =
         branches.size() - 1;
 
     for (std::size_t index = 0;
@@ -426,17 +439,16 @@ bool Game::measureQuantumPiece(
         accumulatedProbability +=
             branches[index].probability;
 
-        if (measurement <=
-            accumulatedProbability) {
-            survivingIndex = index;
+        if (measuredValue <= accumulatedProbability) {
+            selectedIndex = index;
             break;
         }
     }
 
     Piece survivingPiece =
         board_.at(
-            branches[survivingIndex].row,
-            branches[survivingIndex].column
+            branches[selectedIndex].row,
+            branches[selectedIndex].column
         );
 
     for (const Branch& branch : branches) {
@@ -450,36 +462,76 @@ bool Game::measureQuantumPiece(
     survivingPiece.quantumGroupId = -1;
     survivingPiece.probability = 1.0;
 
-    const Branch& survivingBranch =
-        branches[survivingIndex];
+    survivingRow =
+        branches[selectedIndex].row;
+
+    survivingColumn =
+        branches[selectedIndex].column;
 
     board_.setPiece(
-        survivingBranch.row,
-        survivingBranch.column,
+        survivingRow,
+        survivingColumn,
         survivingPiece
     );
 
     const char file =
-        static_cast<char>(
-            'a' + survivingBranch.column
-        );
+        static_cast<char>('a' + survivingColumn);
 
     const int rank =
-        8 - survivingBranch.row;
+        8 - survivingRow;
 
     std::ostringstream output;
 
     output
         << "Quantum group "
-        << selectedPiece.quantumGroupId
+        << quantumGroupId
         << " collapsed to "
         << file
         << rank
         << ".";
 
     resultMessage = output.str();
-    errorMessage.clear();
+    return true;
+}
 
+bool Game::measureQuantumPiece(
+    const std::string& square,
+    std::string& resultMessage,
+    std::string& errorMessage
+) {
+    int row = 0;
+    int column = 0;
+
+    if (!parseSquare(square, row, column)) {
+        errorMessage =
+            "Use a valid square such as a3.";
+        return false;
+    }
+
+    const Piece selectedPiece =
+        board_.at(row, column);
+
+    if (!selectedPiece.isQuantum ||
+        selectedPiece.quantumGroupId < 0) {
+        errorMessage =
+            "There is no quantum piece on that square.";
+        return false;
+    }
+
+    int survivingRow = -1;
+    int survivingColumn = -1;
+
+    if (!collapseQuantumGroup(
+            selectedPiece.quantumGroupId,
+            survivingRow,
+            survivingColumn,
+            resultMessage)) {
+        errorMessage =
+            "Quantum measurement failed.";
+        return false;
+    }
+
+    errorMessage.clear();
     return true;
 }
 

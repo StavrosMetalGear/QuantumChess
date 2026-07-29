@@ -118,7 +118,7 @@ int main() {
 
         if (!successful) {
             std::cout
-                << "\nInvalid command: "
+                << "\nResult: "
                 << errorMessage
                 << "\n";
         } else if (!resultMessage.empty()) {
