@@ -70,7 +70,7 @@ bool Game::makeMove(
         return false;
     }
 
-    const Piece sourcePiece =
+    Piece sourcePiece =
         board_.at(sourceRow, sourceColumn);
 
     Piece destinationPiece =
@@ -86,6 +86,49 @@ bool Game::makeMove(
         errorMessage =
             "That piece belongs to the other player.";
         return false;
+    }
+
+    if (sourcePiece.isQuantum) {
+        const int measuredGroupId =
+            sourcePiece.quantumGroupId;
+
+        int survivingRow = -1;
+        int survivingColumn = -1;
+        std::string measurementResult;
+
+        if (!collapseQuantumGroup(
+                measuredGroupId,
+                survivingRow,
+                survivingColumn,
+                measurementResult)) {
+            errorMessage =
+                "Quantum measurement failed.";
+            return false;
+        }
+
+        const bool selectedBranchSurvived =
+            survivingRow == sourceRow &&
+            survivingColumn == sourceColumn;
+
+        if (!selectedBranchSurvived) {
+            switchTurn();
+
+            errorMessage =
+                measurementResult +
+                " The selected branch disappeared, "
+                "so the move failed.";
+
+            return false;
+        }
+
+        sourcePiece =
+            board_.at(sourceRow, sourceColumn);
+
+        destinationPiece =
+            board_.at(
+                destinationRow,
+                destinationColumn
+            );
     }
 
     if (destinationPiece.color == currentTurn_) {
