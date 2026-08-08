@@ -2,7 +2,6 @@
 
 #include <cctype>
 #include <cstdlib>
-#include <cmath>
 #include <sstream>
 #include <random>
 #include <vector>
@@ -71,7 +70,7 @@ bool Game::makeMove(
         return false;
     }
 
-    Piece sourcePiece =
+    const Piece sourcePiece =
         board_.at(sourceRow, sourceColumn);
 
     Piece destinationPiece =
@@ -87,49 +86,6 @@ bool Game::makeMove(
         errorMessage =
             "That piece belongs to the other player.";
         return false;
-    }
-
-    if (sourcePiece.isQuantum) {
-        const int measuredGroupId =
-            sourcePiece.quantumGroupId;
-
-        int survivingRow = -1;
-        int survivingColumn = -1;
-        std::string measurementResult;
-
-        if (!collapseQuantumGroup(
-                measuredGroupId,
-                survivingRow,
-                survivingColumn,
-                measurementResult)) {
-            errorMessage =
-                "Quantum measurement failed.";
-            return false;
-        }
-
-        const bool selectedBranchSurvived =
-            survivingRow == sourceRow &&
-            survivingColumn == sourceColumn;
-
-        if (!selectedBranchSurvived) {
-            switchTurn();
-
-            errorMessage =
-                measurementResult +
-                " The selected branch disappeared, "
-                "so the move failed.";
-
-            return false;
-        }
-
-        sourcePiece =
-            board_.at(sourceRow, sourceColumn);
-
-        destinationPiece =
-            board_.at(
-                destinationRow,
-                destinationColumn
-            );
     }
 
     if (destinationPiece.color == currentTurn_) {
@@ -375,21 +331,12 @@ bool Game::splitKnight(
     firstBranch.hasMoved = true;
     firstBranch.isQuantum = true;
     firstBranch.quantumGroupId = groupId;
-    const double splitAmplitude =
-        1.0 / std::sqrt(2.0);
-
-    firstBranch.amplitude = {
-        splitAmplitude,
-        0.0
-    };
+    firstBranch.probability = 0.5;
 
     secondBranch.hasMoved = true;
     secondBranch.isQuantum = true;
     secondBranch.quantumGroupId = groupId;
-    secondBranch.amplitude = {
-        splitAmplitude,
-        0.0
-    };
+    secondBranch.probability = 0.5;
 
     Board previousBoard = board_;
 
@@ -451,7 +398,7 @@ bool Game::collapseQuantumGroup(
                 branches.push_back({
                     row,
                     column,
-                    piece.probability()
+                    piece.probability
                 });
             }
         }
@@ -513,10 +460,7 @@ bool Game::collapseQuantumGroup(
 
     survivingPiece.isQuantum = false;
     survivingPiece.quantumGroupId = -1;
-    survivingPiece.amplitude = {
-        1.0,
-        0.0
-    };
+    survivingPiece.probability = 1.0;
 
     survivingRow =
         branches[selectedIndex].row;
@@ -619,19 +563,9 @@ std::string Game::quantumSummary() const {
                 << rank
                 << " with "
                 << static_cast<int>(
-                    piece.probability() * 100.0 + 0.5
+                    piece.probability * 100.0
                 )
-                << "% probability"
-                << " | amplitude = "
-                << piece.amplitude.real();
-
-            if (piece.amplitude.imag() >= 0.0) {
-                output << "+";
-            }
-
-            output
-                << piece.amplitude.imag()
-                << "i\n";
+                << "% probability\n";
         }
     }
 

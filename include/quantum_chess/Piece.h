@@ -1,5 +1,7 @@
 #pragma once
 
+#include <complex>
+
 namespace quantum_chess {
 
 enum class PieceType {
@@ -25,7 +27,15 @@ struct Piece {
 
     bool isQuantum = false;
     int quantumGroupId = -1;
-    double probability = 1.0;
+
+    std::complex<double> amplitude{
+        1.0,
+        0.0
+    };
+
+    double probability() const {
+        return std::norm(amplitude);
+    }
 };
 
 }
